@@ -54,50 +54,59 @@ int main()
 
     //定义顶点数组
     float vertexs[] = {
-        0.5f, 0.5f, 0.0f,   // 右上角
-        0.5f, -0.5f, 0.0f,  // 右下角
-        -0.5f, -0.5f, 0.0f, // 左下角
-        -0.5f, 0.5f, 0.0f};
-    //右上角
+        //第一个三角形
+        -0.5f, 0.5f, 0.0f,
+        -0.75f, -0.5f, 0.0f,
+        -0.25f, -0.5f, 0.0f,
+
+        //第二个三角形
+        0.5f, 0.5f, 0.0f,
+        0.75f, -0.5f, 0.0f,
+        0.25f, -0.5f, 0.0f};
 
     unsigned int indexes[] =
         {
             0, 1, 3,  // 第一个三角形
             1, 2, 3}; // 第二个三角形
 
+    // VAO:CPU发送顶点数据到GPU中后，在GPU内存中会存储这些顶点数据，方便渲染时GPU立即访问到这些顶点。
+    //     从CPU放松数据到显卡相对较慢，所以一次尽可能发送多的数据，交由GPU来保存
 
-    //VAO:CPU发送顶点数据到GPU中后，在GPU内存中会存储这些顶点数据，方便渲染时GPU立即访问到这些顶点。
-    //    从CPU放松数据到显卡相对较慢，所以一次尽可能发送多的数据，交由GPU来保存
+    // VBO：用来封装所有和定点处理器相关的数据的特殊对象，它并不保存实际数据，而是放顶点数据，顶点颜色，索引缓冲等的状态配置；
+    //      类似于Unity中的mesh
 
-    //VBO：用来封装所有和定点处理器相关的数据的特殊对象，它并不保存实际数据，而是放顶点数据，顶点颜色，索引缓冲等的状态配置；
-    //     类似于Unity中的mesh
+    unsigned int VBOS[2], VAOS[2];
+    glGenBuffers(2, VBOS);
+    glGenVertexArrays(2, VAOS);
     
-    //IBO：Mesh的三角形顺序
-    unsigned int VBO, VAO, EBO;
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glGenVertexArrays(1, &VAO);
-
     //绑定VAO对象
-    glBindVertexArray(VAO);
+    glBindVertexArray(VAOS[0]);
 
     //绑定VBO对象
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);//只需绑定一次就可以
+    glBindBuffer(GL_ARRAY_BUFFER, VBOS[0]); //只需绑定一次就可以
 
     //填充VBO数据
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertexs), vertexs, GL_STATIC_DRAW);
-
-    //绑定EBO对象
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //填充EBO数据
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexes), indexes, GL_STATIC_DRAW);
 
     //解析顶点数据 设置顶点属性指针
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
+    //绑定VAO对象
+    glBindVertexArray(VAOS[1]);
+
+    //绑定VBO对象
+    glBindBuffer(GL_ARRAY_BUFFER, VBOS[1]); //只需绑定一次就可以
+
+    //填充VBO数据
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexs), vertexs, GL_STATIC_DRAW);
+
+    //解析顶点数据 设置顶点属性指针
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)(9 * sizeof(float)));
+    glEnableVertexAttribArray(0);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    // glBindVertexArray(0);
 
     //创建顶点着色器
     unsigned int vertexShader, fragmentShader, shaderProgram;
@@ -150,8 +159,8 @@ int main()
     //删除着色器
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
-    //线框模式
-    glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+    // //线框模式
+    // glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -161,20 +170,23 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
-        glBindVertexArray(VAO);
-        // glDrawArrays(GL_POINTS, 0, 4);
-        // glDrawArrays(GL_LINE_LOOP, 0, 4);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(VAOS[0]);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
-        glBindVertexArray(0);
+        glBindVertexArray(VAOS[1]);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        // glDrawArrays(GL_LINE, 0, 6);
+        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        // glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+
+        // glBindVertexArray(0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(2, VAOS);
+    glDeleteBuffers(2, VBOS);
     glDeleteProgram(shaderProgram);
     glfwTerminate();
     return 0;

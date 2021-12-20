@@ -54,11 +54,15 @@ int main()
 
     //定义顶点数组
     float vertexs[] = {
-        0.5f, 0.5f, 0.0f,   // 右上角
-        0.5f, -0.5f, 0.0f,  // 右下角
-        -0.5f, -0.5f, 0.0f, // 左下角
-        -0.5f, 0.5f, 0.0f};
-    //右上角
+        //第一个三角形
+        -0.5f,0.5f,0.0f,
+        -0.75f,-0.5f,0.0f,
+        -0.25f,-0.5f,0.0f,
+
+        //第二个三角形
+        0.5f,0.5f,0.0f,
+        0.75f,-0.5f,0.0f,
+        0.25f,-0.5f,0.0f,};
 
     unsigned int indexes[] =
         {
@@ -150,8 +154,8 @@ int main()
     //删除着色器
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
-    //线框模式
-    glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+    // //线框模式
+    // glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -162,10 +166,10 @@ int main()
 
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
-        // glDrawArrays(GL_POINTS, 0, 4);
-        // glDrawArrays(GL_LINE_LOOP, 0, 4);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        // glDrawArrays(GL_LINE, 0, 6);
+        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        // glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
 
         glBindVertexArray(0);
 
