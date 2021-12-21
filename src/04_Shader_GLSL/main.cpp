@@ -2,17 +2,19 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <math.h>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
 
 const char *vertexShaderSouce = "#version 330 core\n"
                                 "layout (location = 0) in vec3 aPos;\n"
-                                "out vec4 vColor;\n"
+                                "layout (location = 1) in vec3 aColor;\n"
+                                "out vec3 vColor;\n"
                                 "void main()\n"
                                 "{\n"
                                 "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-                                "vColor =  vec4(1.0,0.0f,0.5f,1.0f);\n"
+                                "   vColor = aColor;\n"
                                 "   gl_PointSize = 20.0f;\n"
                                 "}\0";
 
@@ -26,9 +28,10 @@ const char *fragmentShaderSouce1 = "#version 330 core\n"
 
 const char *fragmentShaderSouce2 = "#version 330 core\n"
                                    "out vec4 FragColor;\n"
+                                   "in vec3 vColor;\n"
                                    "void main()\n"
                                    "{\n"
-                                   "   FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
+                                   "   FragColor = vec4(vColor,1.0f);\n"
                                    "}\n\0";
 
 int main()
@@ -68,20 +71,11 @@ int main()
 
     //定义顶点数组
     float vertexs[] = {
-        //第一个三角形
-        -0.5f, 0.5f, 0.0f,
-        -0.75f, -0.5f, 0.0f,
-        -0.25f, -0.5f, 0.0f,
-
-        //第二个三角形
-        0.5f, 0.5f, 0.0f,
-        0.75f, -0.5f, 0.0f,
-        0.25f, -0.5f, 0.0f};
-
-    unsigned int indexes[] =
-        {
-            0, 1, 3,  // 第一个三角形
-            1, 2, 3}; // 第二个三角形
+        // 位置              // 颜色
+        0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,  // 右下
+        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // 左下
+        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f    // 顶部
+    };
 
     // VAO:CPU发送顶点数据到GPU中后，在GPU内存中会存储这些顶点数据，方便渲染时GPU立即访问到这些顶点。
     //     从CPU放松数据到显卡相对较慢，所以一次尽可能发送多的数据，交由GPU来保存
@@ -89,38 +83,26 @@ int main()
     // VBO：用来封装所有和定点处理器相关的数据的特殊对象，它并不保存实际数据，而是放顶点数据，顶点颜色，索引缓冲等的状态配置；
     //      类似于Unity中的mesh
 
-    unsigned int VBOS[2], VAOS[2];
-    glGenBuffers(2, VBOS);
-    glGenVertexArrays(2, VAOS);
+    unsigned int VBO, VAO;
+    glGenBuffers(1, &VBO);
+    glGenVertexArrays(1, &VAO);
 
     //绑定VAO对象
-    glBindVertexArray(VAOS[0]);
+    glBindVertexArray(VAO);
 
     //绑定VBO对象
-    glBindBuffer(GL_ARRAY_BUFFER, VBOS[0]); //只需绑定一次就可以
+    glBindBuffer(GL_ARRAY_BUFFER, VBO); //只需绑定一次就可以
 
     //填充VBO数据
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertexs), vertexs, GL_STATIC_DRAW);
 
     //解析顶点数据 设置顶点属性指针
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
-    //绑定VAO对象
-    glBindVertexArray(VAOS[1]);
-
-    //绑定VBO对象
-    glBindBuffer(GL_ARRAY_BUFFER, VBOS[1]); //只需绑定一次就可以
-
-    //填充VBO数据
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexs), vertexs, GL_STATIC_DRAW);
-
-    //解析顶点数据 设置顶点属性指针
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)(9 * sizeof(float)));
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    // glBindVertexArray(0);
+    //设置顶点颜色属性
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     //创建顶点着色器
     unsigned int vertexShader, fragmentShader1, fragmentShader2, shaderProgram1, shaderProgram2;
@@ -167,12 +149,10 @@ int main()
 
     //创建程序对象
     shaderProgram1 = glCreateProgram();
-    shaderProgram2 = glCreateProgram();
 
     //将着色器附加到程序对象上
     glAttachShader(shaderProgram1, vertexShader);
-    glAttachShader(shaderProgram1, fragmentShader1);
-    glAttachShader(shaderProgram2, fragmentShader2);
+    glAttachShader(shaderProgram1, fragmentShader2);
 
     //链接着色器
     glLinkProgram(shaderProgram1);
@@ -184,18 +164,17 @@ int main()
                   << std::endl;
     }
 
-    glLinkProgram(shaderProgram2);
-    glGetProgramiv(shaderProgram2, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(shaderProgram2, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER_PROGRAM_LINK_FAILED\n"
-                  << std::endl;
-    }
+    // glLinkProgram(shaderProgram2);
+    // glGetProgramiv(shaderProgram2, GL_LINK_STATUS, &success);
+    // if (!success)
+    // {
+    //     glGetProgramInfoLog(shaderProgram2, 512, NULL, infoLog);
+    //     std::cout << "ERROR::SHADER_PROGRAM_LINK_FAILED\n"
+    //               << std::endl;
+    // }
 
     //删除着色器
     glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader1);
     glDeleteShader(fragmentShader2);
     // //线框模式
     // glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
@@ -207,27 +186,27 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // float timeValue = glfwGetTime();
+        // float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+        // int ourColorLocation = glGetUniformLocation(shaderProgram1, "ourColor");
+
         glUseProgram(shaderProgram1);
-        glBindVertexArray(VAOS[0]);
+        // glUniform4f(ourColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+        glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
-        glUseProgram(shaderProgram2);
-        glBindVertexArray(VAOS[1]);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        // glDrawArrays(GL_LINE, 0, 6);
-        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        // glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
-
-        // glBindVertexArray(0);
+        // glUseProgram(shaderProgram1);
+        // glUniform4f(ourColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+        // glBindVertexArray(VAO);
+        // glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(2, VAOS);
-    glDeleteBuffers(2, VBOS);
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
     glDeleteProgram(shaderProgram1);
-    glDeleteProgram(shaderProgram2);
     glfwTerminate();
     return 0;
 }
