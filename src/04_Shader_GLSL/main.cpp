@@ -1,38 +1,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <tools/shader.h>
 
 #include <iostream>
 #include <math.h>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
-
-const char *vertexShaderSouce = "#version 330 core\n"
-                                "layout (location = 0) in vec3 aPos;\n"
-                                "layout (location = 1) in vec3 aColor;\n"
-                                "out vec3 vColor;\n"
-                                "void main()\n"
-                                "{\n"
-                                "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-                                "   vColor = aColor;\n"
-                                "   gl_PointSize = 20.0f;\n"
-                                "}\0";
-
-const char *fragmentShaderSouce1 = "#version 330 core\n"
-                                   "out vec4 FragColor;\n"
-                                   "in vec4 vColor;"
-                                   "void main()\n"
-                                   "{\n"
-                                   "   FragColor = vColor;\n"
-                                   "}\n\0";
-
-const char *fragmentShaderSouce2 = "#version 330 core\n"
-                                   "out vec4 FragColor;\n"
-                                   "in vec3 vColor;\n"
-                                   "void main()\n"
-                                   "{\n"
-                                   "   FragColor = vec4(vColor,1.0f);\n"
-                                   "}\n\0";
 
 int main()
 {
@@ -64,6 +38,9 @@ int main()
 
     //注册窗口监听函数
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    //./src/04_Shader_GLSL/shader/vertex.glsl
+
+    Shader ourShader("./src/04_Shader_GLSL/shader/vertex.glsl","./src/04_Shader_GLSL/shader/fragment.glsl");
 
     int nrAttributes;
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
@@ -104,101 +81,21 @@ int main()
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    //创建顶点着色器
-    unsigned int vertexShader, fragmentShader1, fragmentShader2, shaderProgram1, shaderProgram2;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    fragmentShader1 = glCreateShader(GL_FRAGMENT_SHADER);
-    fragmentShader2 = glCreateShader(GL_FRAGMENT_SHADER);
+    glBindVertexArray(0);
+   
+    float xOffset = -0.5f;
 
-    //附加着色器
-    glShaderSource(vertexShader, 1, &vertexShaderSouce, NULL);
-    glCompileShader(vertexShader);
-
-    //检测是否编译成功
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-                  << std::endl;
-    }
-
-    glShaderSource(fragmentShader1, 1, &fragmentShaderSouce1, NULL);
-    glCompileShader(fragmentShader1);
-
-    glGetShaderiv(fragmentShader1, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader1, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT1::COMPILATION_FAILED\n"
-                  << std::endl;
-    }
-
-    glShaderSource(fragmentShader2, 1, &fragmentShaderSouce2, NULL);
-    glCompileShader(fragmentShader2);
-
-    glGetShaderiv(fragmentShader2, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader2, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT2::COMPILATION_FAILED\n"
-                  << std::endl;
-    }
-
-    //创建程序对象
-    shaderProgram1 = glCreateProgram();
-
-    //将着色器附加到程序对象上
-    glAttachShader(shaderProgram1, vertexShader);
-    glAttachShader(shaderProgram1, fragmentShader2);
-
-    //链接着色器
-    glLinkProgram(shaderProgram1);
-    glGetProgramiv(shaderProgram1, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(shaderProgram1, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER_PROGRAM_LINK_FAILED\n"
-                  << std::endl;
-    }
-
-    // glLinkProgram(shaderProgram2);
-    // glGetProgramiv(shaderProgram2, GL_LINK_STATUS, &success);
-    // if (!success)
-    // {
-    //     glGetProgramInfoLog(shaderProgram2, 512, NULL, infoLog);
-    //     std::cout << "ERROR::SHADER_PROGRAM_LINK_FAILED\n"
-    //               << std::endl;
-    // }
-
-    //删除着色器
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader2);
-    // //线框模式
-    // glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window)) 
     {
         processInput(window);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // float timeValue = glfwGetTime();
-        // float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-        // int ourColorLocation = glGetUniformLocation(shaderProgram1, "ourColor");
-
-        glUseProgram(shaderProgram1);
-        // glUniform4f(ourColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+        ourShader.use();
+        ourShader.setFloat("xOffset",xOffset);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
-        // glUseProgram(shaderProgram1);
-        // glUniform4f(ourColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-        // glBindVertexArray(VAO);
-        // glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES,0,3);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -206,7 +103,6 @@ int main()
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    glDeleteProgram(shaderProgram1);
     glfwTerminate();
     return 0;
 }
