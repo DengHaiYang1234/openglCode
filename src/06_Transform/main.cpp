@@ -170,23 +170,17 @@ int main()
     //初始化一个单位矩阵
     glm::mat4 trans = glm::mat4(1.0f);
 
-    //向右平移一个单位
-    trans = glm::translate(trans, glm::vec3(1.0f, 0.0f, 0.0f));
+    // //向右平移一个单位
+    // trans = glm::translate(trans, glm::vec3(1.0f, 0.0f, 0.0f));
 
-    position = trans * position;
+    // position = trans * position;
 
-    //缩放
-    trans = glm::scale(trans, glm::vec3(2.0f, 3.0f, 4.0f));
+    // position = trans * position;
 
-    position = trans * position;
-
-    //旋转
-    trans = glm::rotate(trans, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-    position = trans * position;
+    // position = trans * position;
 
     std::cout << position.x << "--" << position.y << "--" << position.z << std::endl;
-
+    unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "transform");
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -197,7 +191,20 @@ int main()
         ourShader.use();
 
         t = glfwGetTime();
-        ourShader.setFloat("angle", glfwGetTime());
+        // ourShader.setFloat("transform", trans);
+
+        //******PS:下列矩阵相乘的顺序为，谁写在前面就表示其从右往左排列的，所以最后一个表示为最先与向量相乘
+
+        //先缩放，再旋转，最后位移
+        //位移
+        trans = glm::translate(trans, glm::vec3(0.5f, 0.5f, 0.5f));
+        //旋转
+        trans = glm::rotate(trans, glm::radians(t), glm::vec3(0.0f, 0.0f, 1.0f));
+        //缩放
+        trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));
+
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+        trans = glm::mat4(1.0f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
@@ -206,6 +213,18 @@ int main()
         glBindTexture(GL_TEXTURE_2D, texture2);
 
         glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        //先平移，再旋转，再缩放
+        //缩放
+        trans = glm::scale(trans, glm::vec3(sin(t) * 0.5f, sin(t) * 0.5f, sin(t) * 0.5f));
+        //旋转
+        trans = glm::rotate(trans, glm::radians(t), glm::vec3(0.0f, 0.0f, 1.0f));
+        //位移
+        trans = glm::translate(trans, glm::vec3(-0.5f, 0.5f, 0.5f));
+
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+        trans = glm::mat4(1.0f);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);

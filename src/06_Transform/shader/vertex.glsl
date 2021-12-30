@@ -7,6 +7,8 @@ out vec2 texCoord;
 
 uniform float angle;
 
+uniform mat4 transform;
+
 mat4 rotate3d(float angle)
 {
     return mat4(cos(angle),-sin(angle),0.0f,0.0f,
@@ -17,6 +19,6 @@ mat4 rotate3d(float angle)
 
 void main() {
     vColor = aColor;
-    gl_Position = vec4(rotate3d(angle) * vec4(aPos,1.0f));
+    gl_Position = vec4(transform * vec4(aPos,1.0f));
     texCoord = aTexCoord;
 }
