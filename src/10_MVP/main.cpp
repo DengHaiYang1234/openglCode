@@ -2,6 +2,9 @@
 #include <GLFW/glfw3.h>
 #include <tools/shader.h>
 #include <geometry/BoxGeometry.h>
+#include <geometry/PlaneGeometry.h>
+#include <geometry/SphereGeometry.h>
+
 #include <iostream>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -46,7 +49,6 @@ int main(int argc, char *argv[])
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  //开启深度测试
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
 
@@ -55,8 +57,9 @@ int main(int argc, char *argv[])
 
   Shader ourShader("./shader/vertex.glsl", "./shader/fragment.glsl");
 
-  BoxGeometry boxGeometry(0.2, 1.5, 0.2, 1.0, 100.0, 1.0);
-  // BoxGeometry boxGeometry(1.0, 0.1, 0.1, 1.0, 1.0, 1.0);
+  PlaneGeometry planeGeometry(1.0, 1.0, 1.0, 1.0);
+  BoxGeometry boxGeometry(1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+  SphereGeometry sphereGeometry(1.0f, 8.0f, 6.0f, 0, PI * 2.0f, 0, PI);
 
   // 生成纹理
   unsigned int texture1, texture2;
@@ -110,14 +113,25 @@ int main(int argc, char *argv[])
 
   float factor = 0.0;
 
+  glm::vec3 cubePositions[] = {
+      glm::vec3(0.0f, 0.0f, 0.0f),
+      glm::vec3(2.0f, 5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f),
+      glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3(2.4f, -0.4f, -3.5f),
+      glm::vec3(-1.7f, 3.0f, -7.5f),
+      glm::vec3(1.3f, -2.0f, -2.5f),
+      glm::vec3(1.5f, 2.0f, -2.5f),
+      glm::vec3(1.5f, 0.2f, -1.5f),
+      glm::vec3(-1.3f, 1.0f, -1.5f)};
+
   while (!glfwWindowShouldClose(window))
   {
     processInput(window);
 
     // 渲染指令
     // ...
-    // glClearColor(0.14f, 0.14f, 0.14f, 1.0f);
-    //清除深度缓冲
+    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ourShader.use();
@@ -131,11 +145,41 @@ int main(int argc, char *argv[])
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture2);
 
+    glm::mat4 view = glm::mat4(1.0f);
+    glm::mat4 projection = glm::mat4(1.0f);
+    view = glm::translate(view, glm::vec3(0.0, 0.0, -5.0f));
+    projection = glm::perspective(glm::radians(45.0f), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+
+    ourShader.setMat4("view", view);
+    ourShader.setMat4("projection", projection);
     glBindVertexArray(boxGeometry.VAO);
 
-    glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-    // glDrawElements(GL_POINTS, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-    // glDrawElements(GL_LINE_LOOP, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+    for (unsigned int i = 0; i < 10; i++)
+    {
+      glm::mat4 model = glm::mat4(1.0);
+      model = glm::translate(model, cubePositions[i]);
+      float angle = 20.0f * i;
+      model = glm::rotate(model, (float)glfwGetTime() * glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+      model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+      ourShader.setMat4("model", model);
+      glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+    }
+
+    glm::mat4 model = glm::mat4(1.0);
+    model = glm::translate(model, glm::vec3(-1.0f, 0.0, 0.0));
+    model = glm::rotate(model, (float)glfwGetTime() * glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    ourShader.setMat4("model", model);
+
+    glBindVertexArray(planeGeometry.VAO);
+    glDrawElements(GL_TRIANGLES, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(1.0f, 0.0, 0.0));
+    model = glm::rotate(model, (float)glfwGetTime() * glm::radians(45.0f), glm::vec3(1.0f, 0.4f, 0.5f));
+    ourShader.setMat4("model", model);
+
+    glBindVertexArray(sphereGeometry.VAO);
+    glDrawElements(GL_TRIANGLES, sphereGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
